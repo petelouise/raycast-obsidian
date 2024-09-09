@@ -1,8 +1,18 @@
-import { Action, ActionPanel, closeMainWindow, getPreferenceValues, List, open, popToRoot } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  closeMainWindow,
+  getFrontmostApplication,
+  getPreferenceValues,
+  List,
+  open,
+  popToRoot,
+} from "@raycast/api";
 import { useEffect, useState } from "react";
 import AdvancedURIPluginNotInstalled from "./components/Notifications/AdvancedURIPluginNotInstalled";
 import { NoVaultFoundMessage } from "./components/Notifications/NoVaultFoundMessage";
 import { vaultsWithoutAdvancedURIToast } from "./components/Toasts";
+import { clearCache } from "./utils/data/cache";
 import { DailyNoteAppendPreferences } from "./utils/preferences";
 import {
   applyTemplates,
@@ -11,13 +21,12 @@ import {
   useObsidianVaults,
   vaultPluginCheck,
 } from "./utils/utils";
-import { clearCache } from "./utils/data/cache";
 
 interface DailyNoteAppendArgs {
   text: string;
 }
 
-export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs }) {
+export default async function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs }) {
   const { vaults, ready } = useObsidianVaults();
   const { text } = props.arguments;
   const { appendTemplate, heading, vaultName, silent } = getPreferenceValues<DailyNoteAppendPreferences>();
@@ -53,6 +62,7 @@ export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs 
   const selectedVault = vaultName && vaults.find((vault) => vault.name === vaultName);
   // If there's a configured vault, or only one vault, use that
   if (selectedVault || vaultsWithPlugin.length == 1) {
+    const previousApplication = await getFrontmostApplication();
     const vaultToUse = selectedVault || vaultsWithPlugin[0];
     const target = getObsidianTarget({
       type: ObsidianTargetType.DailyNoteAppend,
@@ -65,6 +75,9 @@ export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs 
     clearCache();
     popToRoot();
     closeMainWindow();
+    if (previousApplication.bundleId) {
+      await open(previousApplication.bundleId);
+    }
   }
 
   // Otherwise let the user select a vault
