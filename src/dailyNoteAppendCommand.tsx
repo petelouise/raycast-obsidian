@@ -26,11 +26,25 @@ interface DailyNoteAppendArgs {
   text: string;
 }
 
-export default async function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs }) {
+export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs }) {
   const { vaults, ready } = useObsidianVaults();
   const { text } = props.arguments;
   const { appendTemplate, heading, vaultName, silent } = getPreferenceValues<DailyNoteAppendPreferences>();
-  const [vaultsWithPlugin, vaultsWithoutPlugin] = vaultPluginCheck(vaults, "obsidian-advanced-uri");
+  const [vaultsWithPlugin, setVaultsWithPlugin] = useState<Vault[]>([]);
+  const [vaultsWithoutPlugin, setVaultsWithoutPlugin] = useState<Vault[]>([]);
+  const [content, setContent] = useState("");
+
+  useEffect(() => {
+    const [withPlugin, withoutPlugin] = vaultPluginCheck(vaults, "obsidian-advanced-uri");
+    setVaultsWithPlugin(withPlugin);
+    setVaultsWithoutPlugin(withoutPlugin);
+
+    async function getContent() {
+      const processedContent = await applyTemplates(text, appendTemplate);
+      setContent(processedContent);
+    }
+    getContent();
+  }, [vaults, text, appendTemplate]);
   const [content, setContent] = useState("");
   useEffect(() => {
     async function getContent() {
