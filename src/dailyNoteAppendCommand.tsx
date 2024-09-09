@@ -34,51 +34,33 @@ export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs 
   const [vaultsWithoutPlugin, setVaultsWithoutPlugin] = useState<Vault[]>([]);
   const [content, setContent] = useState("");
 
-  useEffect(() => {
-    const [withPlugin, withoutPlugin] = vaultPluginCheck(vaults, "obsidian-advanced-uri");
-    setVaultsWithPlugin(withPlugin);
-    setVaultsWithoutPlugin(withoutPlugin);
-
-    async function getContent() {
-      const processedContent = await applyTemplates(text, appendTemplate);
-      setContent(processedContent);
-    }
-    getContent();
-  }, [vaults, text, appendTemplate]);
-
-  if (!ready || !content) {
-    return <List isLoading={true}></List>;
-  } else if (vaults.length === 0) {
-    return <NoVaultFoundMessage />;
-  }
-
-  if (vaultsWithoutPlugin.length > 0) {
-    vaultsWithoutAdvancedURIToast(vaultsWithoutPlugin);
-  }
-  if (vaultsWithPlugin.length == 0) {
-    return <AdvancedURIPluginNotInstalled />;
-  }
-  if (vaultName) {
-    // Fail if selected vault doesn't have plugin
-    if (!vaultsWithPlugin.some((v) => v.name === vaultName)) {
-      return <AdvancedURIPluginNotInstalled vaultName={vaultName} />;
-    }
-  }
-
-  const selectedVault = vaultName && vaults.find((vault) => vault.name === vaultName);
-  // If there's a configured vault, or only one vault, use that
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function handleAppend() {
-      if (selectedVault || vaultsWithPlugin.length == 1) {
+    async function initializeAndAppend() {
+      if (!ready) return;
+
+      const [withPlugin, withoutPlugin] = vaultPluginCheck(vaults, "obsidian-advanced-uri");
+      setVaultsWithPlugin(withPlugin);
+      setVaultsWithoutPlugin(withoutPlugin);
+
+      const processedContent = await applyTemplates(text, appendTemplate);
+      setContent(processedContent);
+
+      if (withoutPlugin.length > 0) {
+        vaultsWithoutAdvancedURIToast(withoutPlugin);
+      }
+
+      const selectedVault = vaultName && vaults.find((vault) => vault.name === vaultName);
+      
+      if (selectedVault || withPlugin.length === 1) {
         try {
           const previousApplication = await getFrontmostApplication();
-          const vaultToUse = selectedVault || vaultsWithPlugin[0];
+          const vaultToUse = selectedVault || withPlugin[0];
           const target = getObsidianTarget({
             type: ObsidianTargetType.DailyNoteAppend,
             vault: vaultToUse,
-            text: content,
+            text: processedContent,
             heading: heading,
             silent: silent,
           });
@@ -93,17 +75,32 @@ export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs 
           console.error("Error in DailyNoteAppend:", error);
         }
       }
+
       setIsLoading(false);
     }
 
-    if (ready && content) {
-      handleAppend();
-    }
-  }, [ready, content, selectedVault, vaultsWithPlugin]);
+    initializeAndAppend();
+  }, [ready, vaults, text, appendTemplate, vaultName, heading, silent]);
+
+  if (!ready || isLoading) {
+    return <List isLoading={true} />;
+  }
+
+  if (vaults.length === 0) {
+    return <NoVaultFoundMessage />;
+  }
+
+  if (vaultsWithPlugin.length === 0) {
+    return <AdvancedURIPluginNotInstalled />;
+  }
+
+  if (vaultName && !vaultsWithPlugin.some((v) => v.name === vaultName)) {
+    return <AdvancedURIPluginNotInstalled vaultName={vaultName} />;
+  }
 
   // If there's only one vault or a selected vault, we don't need to show the list
-  if (selectedVault || vaultsWithPlugin.length == 1) {
-    return <List isLoading={isLoading}></List>;
+  if (vaultName || vaultsWithPlugin.length === 1) {
+    return <List isLoading={false} />;
   }
 
   // Otherwise let the user select a vault
