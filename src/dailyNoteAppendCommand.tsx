@@ -26,7 +26,7 @@ interface DailyNoteAppendArgs {
   text: string;
 }
 
-export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs }) {
+export default async function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs }) {
   const { vaults, ready } = useObsidianVaults();
   const { text } = props.arguments;
   const { appendTemplate, heading, vaultName, silent } = getPreferenceValues<DailyNoteAppendPreferences>();
@@ -68,21 +68,25 @@ export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs 
   const selectedVault = vaultName && vaults.find((vault) => vault.name === vaultName);
   // If there's a configured vault, or only one vault, use that
   if (selectedVault || vaultsWithPlugin.length == 1) {
-    const previousApplication = await getFrontmostApplication();
-    const vaultToUse = selectedVault || vaultsWithPlugin[0];
-    const target = getObsidianTarget({
-      type: ObsidianTargetType.DailyNoteAppend,
-      vault: vaultToUse,
-      text: content,
-      heading: heading,
-      silent: silent,
-    });
-    open(target);
-    clearCache();
-    popToRoot();
-    closeMainWindow();
-    if (previousApplication.bundleId) {
-      await open(previousApplication.bundleId);
+    try {
+      const previousApplication = await getFrontmostApplication();
+      const vaultToUse = selectedVault || vaultsWithPlugin[0];
+      const target = getObsidianTarget({
+        type: ObsidianTargetType.DailyNoteAppend,
+        vault: vaultToUse,
+        text: content,
+        heading: heading,
+        silent: silent,
+      });
+      await open(target);
+      clearCache();
+      await popToRoot();
+      await closeMainWindow();
+      if (previousApplication.bundleId) {
+        await open(previousApplication.bundleId);
+      }
+    } catch (error) {
+      console.error("Error in DailyNoteAppend:", error);
     }
   }
 
