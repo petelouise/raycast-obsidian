@@ -45,14 +45,6 @@ export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs 
     }
     getContent();
   }, [vaults, text, appendTemplate]);
-  const [content, setContent] = useState("");
-  useEffect(() => {
-    async function getContent() {
-      const content = await applyTemplates(text, appendTemplate);
-      setContent(content);
-    }
-    getContent();
-  }, []);
 
   if (!ready || !content) {
     return <List isLoading={true}></List>;
