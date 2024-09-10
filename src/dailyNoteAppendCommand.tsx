@@ -1,13 +1,4 @@
-import {
-  Action,
-  ActionPanel,
-  closeMainWindow,
-  getFrontmostApplication,
-  getPreferenceValues,
-  List,
-  open,
-  popToRoot,
-} from "@raycast/api";
+import { Action, ActionPanel, closeMainWindow, getPreferenceValues, List, popToRoot } from "@raycast/api";
 import { useEffect, useState } from "react";
 import AdvancedURIPluginNotInstalled from "./components/Notifications/AdvancedURIPluginNotInstalled";
 import { NoVaultFoundMessage } from "./components/Notifications/NoVaultFoundMessage";
@@ -52,10 +43,9 @@ export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs 
       }
 
       const selectedVault = vaultName && vaults.find((vault) => vault.name === vaultName);
-      
+
       if (selectedVault || withPlugin.length === 1) {
         try {
-          const previousApplication = await getFrontmostApplication();
           const vaultToUse = selectedVault || withPlugin[0];
           const target = getObsidianTarget({
             type: ObsidianTargetType.DailyNoteAppend,
@@ -64,13 +54,10 @@ export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs 
             heading: heading,
             silent: silent,
           });
-          await open(target);
+          await openInBackground(target);
           clearCache();
           await popToRoot();
           await closeMainWindow();
-          if (previousApplication.bundleId) {
-            await open(previousApplication.bundleId);
-          }
         } catch (error) {
           console.error("Error in DailyNoteAppend:", error);
         }
