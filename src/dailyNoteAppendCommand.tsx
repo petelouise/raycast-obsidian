@@ -1,5 +1,16 @@
-import { Action, ActionPanel, closeMainWindow, getPreferenceValues, List, popToRoot } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  closeMainWindow,
+  getFrontmostApplication,
+  getPreferenceValues,
+  List,
+  open,
+  popToRoot,
+} from "@raycast/api";
+import { exec } from "child_process";
 import { useEffect, useState } from "react";
+import { promisify } from "util";
 import AdvancedURIPluginNotInstalled from "./components/Notifications/AdvancedURIPluginNotInstalled";
 import { NoVaultFoundMessage } from "./components/Notifications/NoVaultFoundMessage";
 import { vaultsWithoutAdvancedURIToast } from "./components/Toasts";
@@ -15,6 +26,21 @@ import {
 
 interface DailyNoteAppendArgs {
   text: string;
+}
+
+const execPromise = promisify(exec);
+
+async function openInBackground(target: string): Promise<void> {
+  try {
+    await execPromise(`open -g '${target}'`);
+  } catch (error) {
+    // Fallback to regular open if background open fails
+    const previousApplication = await getFrontmostApplication();
+    await open(target);
+    if (previousApplication.bundleId) {
+      await open(previousApplication.bundleId);
+    }
+  }
 }
 
 export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs }) {
@@ -58,9 +84,7 @@ export default function DailyNoteAppend(props: { arguments: DailyNoteAppendArgs 
           clearCache();
           await popToRoot();
           await closeMainWindow();
-        } catch (error) {
-          console.error("Error in DailyNoteAppend:", error);
-        }
+        } catch (error) {}
       }
 
       setIsLoading(false);
